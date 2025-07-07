@@ -63,15 +63,8 @@ A evolução dos estados é exibida em um gráfico dinâmico gerado com a biblio
 
 
 
-## 🛠️ Execução
-
 ### 📦 Pré-requisitos
 
 - Java 8+ instalado.
 - Biblioteca [`XChart`](https://knowm.org/open-source/xchart/) adicionada ao classpath (pode usar Maven ou JAR manual).
 
-### ▶️ Compilação e Execução Manual (sem IDE)
-
-```bash
-javac -cp "lib/xchart-3.8.1.jar" src/**/*.java
-java -cp ".:lib/xchart-3.8.1.jar:src" simulacao.Simulacao
