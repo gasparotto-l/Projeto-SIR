@@ -1,21 +1,26 @@
 # 📘 Documentação das Interfaces
 
-### 🔷 `ComportamentoCelular.java`
+Este projeto utiliza duas interfaces principais como forma de aplicar **abstração**, **polimorfismo** e **baixo acoplamento** na arquitetura orientada a objetos.
+
+
+## 🔷 `ComportamentoCelular.java`
 
 > **Tipo:** Interface  
 > **Responsabilidade:** Define o contrato de comportamento para qualquer célula da simulação.
 
 ### ✔️ O que ela faz:
-- Declara o método `decidirProximoEstado(...)`, que define como uma célula avalia sua vizinhança e decide o próximo estado com base nas probabilidades.
+- Declara o método `decidirProximoEstado(...)`, que permite que uma célula analise sua vizinhança e tome uma decisão sobre qual será seu próximo estado.
 
 ### 🧩 Utilização:
-- Implementada pela classe `Celula`, mas pode ser reutilizada por outras variantes no futuro.
+- Implementada pela classe `Celula`, mas projetada para permitir que outras classes também possam representar "células" com comportamentos distintos no futuro.
 
 ### 🎯 Objetivo:
-- Permitir que diferentes tipos de célula possam ter comportamentos distintos sem modificar o código do autômato.
-- Facilita testes, extensão e uso de polimorfismo.
+- Permitir a troca ou ampliação de tipos de células sem alterar o código principal.
+- Aplicar **polimorfismo**: tratar diferentes tipos de célula da mesma forma.
+- Isolar a lógica do comportamento celular da estrutura da simulação.
 
-### Codigo Comentado:
+### Código Comentado:
+
 ```java
 // Interface que define o comportamento esperado de uma célula.
 // Isso permite que diferentes tipos de célula (com regras diferentes) possam ser usados no futuro.
@@ -27,25 +32,24 @@ public interface ComportamentoCelular {
 }
 ```
 
-## 🔷 `IAutomatoCelular.java`
-
-> **Tipo:** Interface  
-> **Responsabilidade:** Abstrair o comportamento genérico de um autômato celular.
+## 🔷 IAutomatoCelular.java
+> Tipo: Interface
+> Responsabilidade: Abstrair o comportamento genérico de um autômato celular.
 
 ### ✔️ O que ela faz:
-- Define os métodos:
-  - `executarPasso()` – para avançar a simulação.
-  - `getGrade()` – retorna a grade de células.
-  - `contarPorEstado(...)` – conta células por estado.
+- Define os métodos essenciais que qualquer autômato celular deve implementar:
+
+- executarPasso() – executa uma iteração da simulação.
+
+- getGrade() – retorna a grade de células.
+
+- contarPorEstado(int estado) – conta quantas células estão em um estado específico (0, 1 ou 2).
 
 ### 🧩 Utilização:
-- `Simulacao` usa essa interface para que a implementação do autômato possa ser trocada facilmente.
+- A classe Simulacao usa apenas essa interface para manter independência da implementação concreta (AutomatoCelular).
 
-### 🎯 Objetivo:
-- Desacoplar a simulação da implementação concreta do autômato.
-- Facilitar substituição, testes e extensão da lógica do autômato no futuro.
+- Isso permite que outras versões do autômato possam ser implementadas e testadas facilmente.
 
-### Comando Comentado:
 
 ```java
 // Interface que define o que um autômato celular precisa fazer.
@@ -58,16 +62,15 @@ public interface IAutomatoCelular {
     // Retorna a grade de células que está sendo simulada.
     Celula[][] getGrade();
 
-    // Conta quantas células estão em um determinado estado (S, I ou R).
-    int contarPorEstado(Celula.Estado estado);
+    // Conta quantas células estão em um determinado estado (S, I ou R), usando inteiros (0, 1, 2).
+    int contarPorEstado(int estado);
 }
+
 ```
 
-## 📌 Conclusão
+### 🎯 Objetivo:
+- Seguir o princípio de baixo acoplamento e programar para interfaces.
 
-O uso de interfaces neste projeto tem como foco:
+- Facilitar testes, extensão do projeto e possíveis melhorias futuras.
 
-- Aplicar **abstração**.
-- Permitir **polimorfismo**.
-- **Desacoplar** dependências diretas entre classes.
-- **Preparar o código para crescimento futuro** sem quebras.
+- Aplicar abstração, separando o que o autômato faz de como ele faz.

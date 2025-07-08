@@ -1,362 +1,111 @@
 # 📙 Documentação das Classes
 
+---
 
-### 🔶 `Celula.java`
+## 🔶 `Estado.java`
+
+> **Tipo:** Classe utilitária (constantes estáticas)  
+> **Responsabilidade:** Substituir o uso de `enum` definindo os estados da célula (`SUSCETIVEL`, `INFECTADO`, `RECUPERADO`) como inteiros.
+
+### ✔️ O que ela faz:
+- Define três constantes inteiras para os estados do modelo SIR:
+  - `SUSCETIVEL = 0`
+  - `INFECTADO = 1`
+  - `RECUPERADO = 2`
+
+### 🧩 Utilização:
+- Usada por `Celula`, `AutomatoCelular` e `Simulacao` no lugar do `enum`.
+
+### 🎯 Objetivo:
+- Tornar o código mais acessível para quem ainda não estudou `enum` em Java.
+- Facilitar a manipulação de estados usando números inteiros simples.
+
+
+
+## 🔶 `Celula.java`
 
 > **Tipo:** Classe concreta  
 > **Responsabilidade:** Representar um indivíduo da população (célula da grade) e controlar sua lógica de transição de estados.
 
 ### ✔️ O que ela faz:
-- Guarda o estado atual (`SUSCETIVEL`, `INFECTADO`, `RECUPERADO`) e o próximo estado.
+- Armazena o estado atual e o próximo estado da célula (como inteiro).
 - Implementa a interface `ComportamentoCelular`.
-- Conta vizinhos infectados, aplica regras probabilísticas, e define o próximo estado.
+- Aplica as regras de transição com base na vizinhança e nas probabilidades.
+- Controla o tempo de infecção para possíveis decisões.
 
 ### 🧩 Utilização:
-- Cada célula da grade em `AutomatoCelular` é uma instância de `Celula`.
+- Cada elemento da grade em `AutomatoCelular` é uma instância de `Celula`.
+- Chamado em cada iteração da simulação.
 
-### Comando comentado:
-```java
-public class Celula implements ComportamentoCelular {
 
-    public enum Estado {
-        SUSCETIVEL, INFECTADO, RECUPERADO
-    }
-
-    private Estado estadoAtual;
-    private Estado proximoEstado;
-    private int tempoInfectado;
-
-    public Celula(Estado estadoInicial) {
-        this.estadoAtual = estadoInicial;
-        this.proximoEstado = estadoInicial;
-        this.tempoInfectado = 0;
-    }
-
-    public Estado getEstado() {
-        return estadoAtual;
-    }
-
-    public void definirProximoEstado(Estado estado) {
-        this.proximoEstado = estado;
-    }
-
-    public void atualizarEstado() {
-        this.estadoAtual = this.proximoEstado;
-    }
-
-    public int getTempoInfectado() {
-        return tempoInfectado;
-    }
-
-    public void incrementarTempoInfectado() {
-        this.tempoInfectado++;
-    }
-
-    public void resetarTempoInfectado() {
-        this.tempoInfectado = 0;
-    }
-
-    // Lógica principal: decide o próximo estado da célula com base em regras probabilísticas e vizinhos
-    @Override
-    public void decidirProximoEstado(Celula[][] vizinhanca, TransicaoProbabilistica transicoes) {
-        switch (estadoAtual) {
-            case SUSCETIVEL:
-                if (transicoes.sorteio(transicoes.Pv)) {
-                    definirProximoEstado(Estado.RECUPERADO); // vacinação
-                } else if (transicoes.sorteio(transicoes.Ps)) {
-                    definirProximoEstado(Estado.INFECTADO); // caso importado
-                } else {
-                    int infectados = contarInfectados(vizinhanca);
-                    double Pi = transicoes.calcularProbInfeccao(infectados);
-                    definirProximoEstado(transicoes.sorteio(Pi) ? Estado.INFECTADO : Estado.SUSCETIVEL);
-                }
-                break;
-            case INFECTADO:
-                if (transicoes.sorteio(transicoes.Pc)) {
-                    definirProximoEstado(Estado.RECUPERADO); // cura
-                    resetarTempoInfectado();
-                } else if (transicoes.sorteio(transicoes.Pd)) {
-                    definirProximoEstado(Estado.SUSCETIVEL); // morte → retorna como suscetível
-                    resetarTempoInfectado();
-                } else {
-                    definirProximoEstado(Estado.INFECTADO);
-                    incrementarTempoInfectado();
-                }
-                break;
-            case RECUPERADO:
-                definirProximoEstado(transicoes.sorteio(transicoes.Po) ? Estado.SUSCETIVEL : Estado.RECUPERADO); // pode morrer
-                break;
-        }
-    }
-
-    // Conta quantos vizinhos estão no estado INFECTADO
-    private int contarInfectados(Celula[][] vizinhos) {
-        int count = 0;
-        for (Celula[] linha : vizinhos) {
-            for (Celula c : linha) {
-                if (c != null && c.getEstado() == Estado.INFECTADO) {
-                    count++;
-                }
-            }
-        }
-        return count;
-    }
-}
-
-```
 
 ## 🔶 `TransicaoProbabilistica.java`
 
 > **Tipo:** Classe utilitária  
-> **Responsabilidade:** Encapsular todos os parâmetros probabilísticos e realizar sorteios com base neles.
+> **Responsabilidade:** Encapsular os parâmetros probabilísticos e fornecer funções auxiliares.
 
 ### ✔️ O que ela faz:
-- Guarda probabilidades como `Pv`, `Ps`, `Pc`, `Pd`, `Po`, e o parâmetro `k`.
-- Fornece métodos como:
-  - `sorteio(probabilidade)`
-  - `calcularProbInfeccao(vizinhosInfectados)`
+- Armazena os parâmetros `Pv`, `Ps`, `Pc`, `Pd`, `Po`, `k`.
+- Executa sorteios com base em probabilidades.
+- Calcula a chance de infecção com base no número de vizinhos infectados (`1 - e^(-k * n)`).
 
 ### 🧩 Utilização:
-- Usada por `Celula` e `AutomatoCelular` para decidir os estados com base em chance.
+- Utilizada por `Celula` no método `decidirProximoEstado(...)`.
 
-### Comando comentado:
-```java
-// Classe que armazena e aplica as regras probabilísticas da simulação.
-// Cada probabilidade representa um evento possível no modelo SIR.
 
-public class TransicaoProbabilistica {
-
-    // Probabilidade de vacinação espontânea (S → R)
-    public double Pv;
-
-    // Probabilidade de caso importado (S → I sem vizinhos)
-    public double Ps;
-
-    // Probabilidade de cura (I → R)
-    public double Pc;
-
-    // Probabilidade de morte (I → S)
-    public double Pd;
-
-    // Probabilidade de morte (R → S)
-    public double Po;
-
-    // Parâmetro que controla a taxa de infecção via vizinhos (intensidade)
-    public double k;
-
-    // Construtor que recebe os parâmetros definidos no início da simulação
-    public TransicaoProbabilistica(double Pv, double Ps, double Pc, double Pd, double Po, double k) {
-        this.Pv = Pv;
-        this.Ps = Ps;
-        this.Pc = Pc;
-        this.Pd = Pd;
-        this.Po = Po;
-        this.k = k;
-    }
-
-    // Realiza um sorteio com base em uma probabilidade: retorna true se o evento ocorre.
-    // Exemplo: sorteio(0.3) retorna true com 30% de chance.
-    public boolean sorteio(double probabilidade) {
-        return Math.random() < probabilidade;
-    }
-
-    // Calcula a probabilidade de infecção com base no número de vizinhos infectados.
-    // Fórmula baseada em processo estocástico: P = 1 - e^(-k * n)
-    public double calcularProbInfeccao(int vizinhosInfectados) {
-        return 1 - Math.exp(-k * vizinhosInfectados);
-    }
-}
-
-```
 
 ## 🔶 `AutomatoCelular.java`
 
 > **Tipo:** Classe concreta, implementa `IAutomatoCelular`  
-> **Responsabilidade:** Controlar a grade de células e aplicar as regras de transição a cada iteração.
+> **Responsabilidade:** Controlar a grade de células e aplicar a lógica do autômato.
 
 ### ✔️ O que ela faz:
-- Inicializa a população com 1% infectada.
-- A cada passo:
-  1. Pede para cada célula decidir seu próximo estado.
-  2. Atualiza todas as células ao mesmo tempo.
-- Trata as bordas com contorno toroidal.
+- Inicializa uma grade de `Celula[][]` com maioria suscetível e 1% infectada.
+- A cada iteração:
+  1. Cada célula decide o próximo estado com base na vizinhança.
+  2. Todos os estados são atualizados simultaneamente.
+- Trata bordas com contorno toroidal (vizinhança circular).
 
 ### 🧩 Utilização:
-- Chamado diretamente por `Simulacao`.
+- Executado diretamente pela classe `Simulacao`.
 
-### Comando comentado:
-```java
-public class AutomatoCelular implements IAutomatoCelular {
-
-    private final int largura;
-    private final int altura;
-    private final Celula[][] grade;
-    private final TransicaoProbabilistica transicoes;
-
-    public AutomatoCelular(int largura, int altura, TransicaoProbabilistica transicoes) {
-        this.largura = largura;
-        this.altura = altura;
-        this.transicoes = transicoes;
-        this.grade = new Celula[altura][largura];
-        inicializar();
-    }
-
-    // Preenche a grade com 99% suscetíveis e 1% infectados
-    private void inicializar() {
-        for (int i = 0; i < altura; i++) {
-            for (int j = 0; j < largura; j++) {
-                grade[i][j] = new Celula(Math.random() < 0.01 ? Celula.Estado.INFECTADO : Celula.Estado.SUSCETIVEL);
-            }
-        }
-    }
-
-    @Override
-    public void executarPasso() {
-        // Etapa 1: cada célula decide seu próximo estado com base nos vizinhos
-        for (int i = 0; i < altura; i++) {
-            for (int j = 0; j < largura; j++) {
-                Celula[][] vizinhanca = obterVizinhanca(i, j);
-                grade[i][j].decidirProximoEstado(vizinhanca, transicoes);
-            }
-        }
-
-        // Etapa 2: todas as células atualizam seus estados simultaneamente
-        for (int i = 0; i < altura; i++) {
-            for (int j = 0; j < largura; j++) {
-                grade[i][j].atualizarEstado();
-            }
-        }
-    }
-
-    // Retorna os vizinhos 3x3 da célula na posição (x, y), com contorno toroidal
-    private Celula[][] obterVizinhanca(int x, int y) {
-        Celula[][] vizinhos = new Celula[3][3];
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
-                int nx = (x + dx + altura) % altura;
-                int ny = (y + dy + largura) % largura;
-                vizinhos[dx + 1][dy + 1] = grade[nx][ny];
-            }
-        }
-        return vizinhos;
-    }
-
-    @Override
-    public Celula[][] getGrade() {
-        return grade;
-    }
-
-    @Override
-    public int contarPorEstado(Celula.Estado estado) {
-        int count = 0;
-        for (Celula[] linha : grade) {
-            for (Celula c : linha) {
-                if (c.getEstado() == estado) count++;
-            }
-        }
-        return count;
-    }
-}
-
-```
 
 ## 🔶 `Simulacao.java`
 
-> **Tipo:** Classe executável  
-> **Responsabilidade:** Orquestrar a execução da simulação, registrar os dados e exibir os gráficos.
+> **Tipo:** Classe principal (executável)  
+> **Responsabilidade:** Executar a simulação, armazenar os dados e gerar o gráfico com os resultados.
 
 ### ✔️ O que ela faz:
-- Instancia o `AutomatoCelular`.
-- Executa a simulação por `N` passos.
-- Coleta dados sobre `S`, `I` e `R`.
-- Usa a biblioteca `XChart` para exibir os gráficos.
+- Instancia o autômato e define os parâmetros iniciais.
+- Roda a simulação por um número fixo de iterações.
+- Armazena a contagem de `S`, `I` e `R` a cada passo.
+- Utiliza a biblioteca **XChart** para exibir um gráfico com os dados.
 
-### Comando comentado:
-```java
-import org.knowm.xchart.*;
-import java.util.*;
+### 🧩 Utilização:
+- Ponto de entrada da aplicação (contém o método `main`).
 
-public class Simulacao {
 
-    private final IAutomatoCelular automato;
-    private final XYChart chart;
-    private final List<Integer> suscetiveis = new ArrayList<>();
-    private final List<Integer> infectados = new ArrayList<>();
-    private final List<Integer> recuperados = new ArrayList<>();
-
-    public Simulacao(IAutomatoCelular automato) {
-        this.automato = automato;
-
-        // Cria o gráfico com título e eixos
-        this.chart = new XYChartBuilder()
-                .width(800).height(600)
-                .title("Evolução SIR")
-                .xAxisTitle("Iterações")
-                .yAxisTitle("População")
-                .build();
-    }
-
-    public void rodar(int passos) {
-        for (int t = 0; t < passos; t++) {
-            automato.executarPasso(); // faz a simulação andar 1 iteração
-
-            // Registra quantas células existem em cada estado
-            suscetiveis.add(automato.contarPorEstado(Celula.Estado.SUSCETIVEL));
-            infectados.add(automato.contarPorEstado(Celula.Estado.INFECTADO));
-            recuperados.add(automato.contarPorEstado(Celula.Estado.RECUPERADO));
-        }
-
-        // Adiciona os dados ao gráfico
-        chart.addSeries("Suscetíveis", geraX(passos), suscetiveis);
-        chart.addSeries("Infectados", geraX(passos), infectados);
-        chart.addSeries("Recuperados", geraX(passos), recuperados);
-
-        // Exibe o gráfico em uma janela Swing
-        new SwingWrapper<>(chart).displayChart();
-    }
-
-    // Gera o eixo X para o gráfico (lista de 0 a passos-1)
-    private List<Integer> geraX(int n) {
-        List<Integer> x = new ArrayList<>();
-        for (int i = 0; i < n; i++) x.add(i);
-        return x;
-    }
-
-    public static void main(String[] args) {
-        // Define os parâmetros da simulação (vacinação, cura, etc.)
-        TransicaoProbabilistica params = new TransicaoProbabilistica(0.03, 0.01, 0.6, 0.3, 0.1, 1.0);
-
-        // Cria o autômato celular com a grade 200x200
-        IAutomatoCelular automato = new AutomatoCelular(200, 200, params);
-
-        // Executa a simulação com 100 passos
-        new Simulacao(automato).rodar(100);
-    }
-}
-
-```
 
 ## 🧩 Fluxo Geral das Classes
 
 ```
 Simulacao
-  └── usa → IAutomatoCelular (interface)
-               └── implementado por → AutomatoCelular
-                      ├── contém → Celula[][] (grade de indivíduos)
-                      │     └── cada Celula implementa → ComportamentoCelular (interface)
-                      │            └── usa → TransicaoProbabilistica (regras e probabilidades)
-                      └── executa a lógica de vizinhança e iteração
+└── usa → IAutomatoCelular (interface)
+└── implementado por → AutomatoCelular
+├── contém → Celula[][] (grade de indivíduos)
+│ └── cada Celula implementa → ComportamentoCelular (interface)
+│ └── usa → TransicaoProbabilistica (regras e probabilidades)
+└── utiliza constantes da → Estado (SUSCETIVEL, INFECTADO, RECUPERADO)
 ```
-
 
 
 ## 📌 Conclusão
 
-As classes foram organizadas com as seguintes boas práticas:
+As classes deste projeto foram organizadas para aplicar os seguintes princípios de POO:
 
-- **Responsabilidade única**: cada classe tem uma função clara.
-- **Encapsulamento**: variáveis privadas, métodos públicos claros.
-- **Polimorfismo via interface** (`Celula` implementa `ComportamentoCelular`).
-- **Desacoplamento** entre simulação e lógica interna.
+- **Responsabilidade única:** cada classe tem uma função bem definida.
+- **Encapsulamento:** os dados de cada célula e do autômato estão protegidos.
+- **Abstração e polimorfismo:** via interfaces `ComportamentoCelular` e `IAutomatoCelular`.
+- **Simplicidade:** ao usar `int` em vez de `enum`, o projeto ficou mais acessível sem perder estrutura.
 
-Esse projeto demonstra um uso prático e bem estruturado da Programação Orientada a Objetos.
+Este projeto demonstra de forma clara como aplicar POO em uma simulação científica, integrando lógica matemática, modelagem computacional e visualização gráfica.
